@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 전역 글꼴만 유지 */
+/* 전역 글꼴 */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
@@ -8,9 +8,9 @@
 /* 레이아웃 기본 */
 html, body, #root { height: 100%; }
 
-/* 아이보리 배경 + 적당한 본문색(파랑/남색 X) */
+/* 아이보리 본문 배경 + 가독성 좋은 본문색 */
 body {
   margin: 0;
-  background-color: #FFFBEB; /* Tailwind amber-50 */
-  color: #1C1917;            /* Tailwind stone-900 */
+  background-color: #FFF7E6; /* 연한 아이보리 */
+  color: #1C1917;            /* stone-900 */
 }
