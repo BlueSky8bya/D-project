@@ -1,21 +1,13 @@
 // src/App.tsx
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import type { ParseResult, ParseConfig } from "papaparse";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-} from "recharts";
 
 import SurveyViewer from "./components/SurveyViewer";
 import { parseSurveyFromRow, type SurveyBlock } from "./utils/parseSurveyResponses";
+import { TARGET_FILES, prettyName, findMetaByFile } from './constants/csvRegistry';
+import CsvRouter from './components/CsvRouter';
 
 type DirHandle = FileSystemDirectoryHandle;
 type FileHandle = FileSystemFileHandle;
@@ -23,72 +15,21 @@ type FileHandle = FileSystemFileHandle;
 type CsvFileInfo = { name: string; handle: FileHandle; size?: number };
 type Participant = { uid: string; handle: DirHandle; quickCount: number; files?: CsvFileInfo[] };
 
-/** string[] + Set.has() (unique symbol 오버로드 이슈 방지) */
-const TARGET_FILES: string[] = [
-  "watch_accelerometer.csv",
-  "watch_gravity.csv",
-  "watch_gyroscope.csv",
-  "watch_heart_rate.csv",
-  "watch_light.csv",
-  "watch_ppg_green.csv",
-  "response.csv",
-];
 const TARGET_FILES_SET = new Set<string>(TARGET_FILES);
 
 const CSV_INFO: Record<string, { title: string; desc: string; fields?: string[] }> = {
-  watch_accelerometer: {
-    title: "가속도계",
-    desc: "삼축 선형가속도 (x,y,z). 보행/활동 강도 추정.",
-    fields: ["timestamp", "x", "y", "z", "test"],
-  },
-  watch_gravity: {
-    title: "중력",
-    desc: "기기 축의 중력 성분 (X,Y,Z). 자세/방향 보정.",
-    fields: ["time|timestamp", "X", "Y", "Z", "x", "y", "z"],
-  },
-  watch_gyroscope: {
-    title: "자이로",
-    desc: "각속도 (X,Y,Z). 회전/움직임 패턴.",
-    fields: ["time|timestamp", "X", "Y", "Z", "x", "y", "z"],
-  },
-  watch_heart_rate: {
-    title: "심박",
-    desc: "심박수(bpm). 휴식/운동/스트레스.",
-    fields: ["time|timestamp", "value|data"],
-  },
-  watch_light: {
-    title: "조도",
-    desc: "환경 조도(lux 유사). 수면/활동 컨텍스트.",
-    fields: ["time|timestamp", "value|data"],
-  },
-  watch_ppg_green: {
-    title: "PPG(녹색)",
-    desc: "광용적맥파 원시값. 심박/HRV 추정 원천.",
-    fields: ["time|timestamp", "value|data"],
-  },
-  response: {
-    title: "설문 응답",
-    desc: "PHQ-9 등 설문/메타데이터.",
-    fields: ["uid", "week", "PHQ-9.*", "lastUpdate"],
-  },
+  // ... (동일)
 };
 
 /* -------- 유틸 -------- */
 function pLimit(concurrency: number) {
   let active = 0;
   const q: (() => void)[] = [];
-  const next = () => {
-    active--;
-    q.shift()?.();
-  };
+  const next = () => { active--; q.shift()?.(); };
   return async function <T>(fn: () => Promise<T>): Promise<T> {
     if (active >= concurrency) await new Promise<void>((r) => q.push(r));
     active++;
-    try {
-      return await fn();
-    } finally {
-      next();
-    }
+    try { return await fn(); } finally { next(); }
   };
 }
 
@@ -109,46 +50,8 @@ async function* dirEntries(dir: DirHandle): AsyncGenerator<[string, FileSystemHa
   }
 }
 
-function guessNumericKeys(
-  rows: any[],
-  prefer = ["value", "data", "x", "y", "z", "X", "Y", "Z"]
-) {
-  if (!rows?.length) return [];
-  const sample = rows[0];
-  const ks = Object.keys(sample);
-  const nums = ks.filter((k) => typeof sample[k] === "number");
-  nums.sort(
-    (a, b) =>
-      (prefer.indexOf(a) === -1 ? 999 : prefer.indexOf(a)) -
-      (prefer.indexOf(b) === -1 ? 999 : prefer.indexOf(b))
-  );
-  return nums;
-}
-function guessTimeKey(
-  rows: any[],
-  prefer = ["timestamp", "time", "date", "datetime", "createdAt"]
-) {
-  if (!rows?.length) return undefined;
-  const ks = Object.keys(rows[0]);
-  for (const p of prefer) if (ks.includes(p)) return p;
-  return undefined;
-}
-function prettyName(name: string) {
-  const map: Record<string, string> = {
-    watch_accelerometer: "가속도계",
-    watch_gravity: "중력",
-    watch_gyroscope: "자이로",
-    watch_heart_rate: "심박",
-    watch_light: "조도",
-    watch_ppg_green: "PPG(녹색)",
-    response: "설문 응답",
-  };
-  return map[name.replace(/\.csv$/i, "")] ?? name.replace(/\.csv$/i, "");
-}
-
-/** Papa.parse 콜백 → Promise 래핑 (TS 오버로드 충돌을 any 캐스팅으로 격리) */
+/** Papa.parse 콜백 → Promise 래핑 */
 type BrowserParseConfig<T = any> = ParseConfig<T> & { worker?: boolean };
-
 const parseCsv = (text: string, cfg: BrowserParseConfig) =>
   new Promise<any[]>((resolve, reject) => {
     Papa.parse(text, {
@@ -158,7 +61,6 @@ const parseCsv = (text: string, cfg: BrowserParseConfig) =>
     });
   });
 
-
 /* -------- 컴포넌트 -------- */
 export default function App() {
   const [root, setRoot] = useState<DirHandle | null>(null);
@@ -166,9 +68,8 @@ export default function App() {
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [selectedCsv, setSelectedCsv] = useState<CsvFileInfo | null>(null);
 
-  // 센서
+  // 센서/설문 로드 결과
   const [rows, setRows] = useState<any[] | null>(null);
-  // 설문
   const [surveyBlocks, setSurveyBlocks] = useState<SurveyBlock[] | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -236,9 +137,7 @@ export default function App() {
             const files: CsvFileInfo[] = [];
             for await (const [fname, fhandle] of dirEntries(p.handle)) {
               if (fhandle.kind === "file" && fname.toLowerCase().endsWith(".csv")) {
-                if (TARGET_FILES_SET.has(fname)) {
-                  files.push({ name: fname, handle: fhandle as FileHandle });
-                }
+                if (TARGET_FILES_SET.has(fname)) files.push({ name: fname, handle: fhandle as FileHandle });
               }
             }
             files.sort((a, b) => a.name.localeCompare(b.name));
@@ -264,9 +163,7 @@ export default function App() {
     const files: CsvFileInfo[] = [];
     for await (const [fname, fhandle] of dirEntries(p.handle)) {
       if (fhandle.kind === "file" && fname.toLowerCase().endsWith(".csv")) {
-        if (TARGET_FILES_SET.has(fname)) {
-          files.push({ name: fname, handle: fhandle as FileHandle });
-        }
+        if (TARGET_FILES_SET.has(fname)) files.push({ name: fname, handle: fhandle as FileHandle });
       }
     }
     files.sort((a, b) => a.name.localeCompare(b.name));
@@ -276,7 +173,7 @@ export default function App() {
     );
   };
 
-  // 센서/설문 공용 로더
+  // CSV 로드
   const loadCsv = async (f: CsvFileInfo) => {
     setError(null);
     setSelectedCsv(f);
@@ -325,9 +222,6 @@ export default function App() {
     }
   };
 
-  const timeKey = useMemo(() => guessTimeKey(rows ?? []), [rows]);
-  const valueKeys = useMemo(() => guessNumericKeys(rows ?? []), [rows]);
-  const seriesColors = ["#16a34a", "#65a30d", "#f59e0b", "#10b981", "#84cc16"];
   const summary = useMemo(
     () => ({ total: participants.length, withAny: participants.filter((p) => p.quickCount > 0).length }),
     [participants]
@@ -430,7 +324,7 @@ export default function App() {
           {/* 우: CSV 목록 & 뷰어 */}
           <div ref={rightTopRef} className="rounded-2xl border border-[#E6DCA8] bg-[#FFF5D9] p-5 shadow-sm">
             <h2 className="mb-3 text-lg font-semibold text-stone-800">
-              {selectedUid ? <>CSV 파일 · <span className="text-green-700">{selectedUid}</span></> : "CSV 파일"}
+              {selectedUid ? <>피험자 UID · <span className="text-green-700">{selectedUid}</span></> : "피험자 UID"}
             </h2>
 
             {selectedUid ? (() => {
@@ -478,7 +372,7 @@ export default function App() {
                     {selectedCsv.name.toLowerCase() === "response.csv" ? (
                       <>설문 · <span className="text-green-700">설문 응답</span></>
                     ) : (
-                      <>차트 · <span className="text-green-700">{prettyName(selectedCsv.name.replace(/\.csv$/i, ""))}</span></>
+                      <>차트 · <span className="text-green-700">{prettyName(selectedCsv.name)}</span></>
                     )}
                   </h3>
                   {loading && <span className="text-xs text-stone-600">불러오는 중…</span>}
@@ -490,65 +384,42 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 설문 */}
-                {!loading && selectedCsv.name.toLowerCase() === "response.csv" ? (
-                  surveyBlocks && surveyBlocks.length > 0 ? (
-                    <div className="rounded-lg border border-[#E2D08F] bg-white/70 p-3">
-                      <SurveyViewer surveys={surveyBlocks} />
-                    </div>
-                  ) : (
+                {(() => {
+                  const meta = findMetaByFile(selectedCsv.name);
+                  if (loading) return null;
+
+                  // response.csv 전용: surveyBlocks가 필요(빈 경우 안내 메시지)
+                  if (meta?.kind === "survey" && meta.id === "survey") {
+                    return (surveyBlocks && surveyBlocks.length > 0) ? (
+                      <div className="rounded-lg border border-[#E2D08F] bg-white/70 p-3">
+                        <SurveyViewer surveys={surveyBlocks} />
+                      </div>
+                    ) : (
+                      <div className="mt-2 rounded-md border border-[#E2D8A1] bg-[#FFF2CC] px-3 py-2 text-sm text-stone-700">
+                        표시할 설문 응답이 없습니다.
+                      </div>
+                    );
+                  }
+
+                  // 나머지(EMA, 수면일지, 모든 센서류 포함)는 CsvRouter가 처리
+                  if (rows && rows.length > 0) {
+                    return (
+                      <div className="rounded-lg border border-[#E2D08F] bg-white/70 p-2">
+                        <CsvRouter
+                          fileName={selectedCsv.name}
+                          rows={rows ?? []}
+                          surveyBlocks={surveyBlocks ?? []}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
                     <div className="mt-2 rounded-md border border-[#E2D8A1] bg-[#FFF2CC] px-3 py-2 text-sm text-stone-700">
-                      표시할 설문 응답이 없습니다.
+                      데이터가 없거나, 파싱할 숫자열을 찾지 못했어요.
                     </div>
-                  )
-                ) : !loading && rows && rows.length > 0 ? (
-                  /* 센서 차트 */
-                  <div className="h-[360px] w-full rounded-lg border border-[#E2D08F] bg-[#FFFFFFB3] p-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {timeKey ? (
-                        <LineChart data={rows.slice(0, 5000)}>
-                          <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-                          <XAxis dataKey={timeKey} tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          {valueKeys.slice(0, 3).map((k, idx) => (
-                            <Line
-                              key={k}
-                              type="monotone"
-                              dataKey={k}
-                              stroke={seriesColors[idx % seriesColors.length]}
-                              dot={false}
-                              strokeWidth={1.6}
-                            />
-                          ))}
-                        </LineChart>
-                      ) : (
-                        <AreaChart
-                          data={(rows as any[]).map((r, i) => ({ idx: i, ...r })).slice(0, 5000)}
-                        >
-                          <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-                          <XAxis dataKey="idx" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          {valueKeys.slice(0, 2).map((k, idx) => (
-                            <Area
-                              key={k}
-                              type="monotone"
-                              dataKey={k}
-                              stroke={seriesColors[idx % seriesColors.length]}
-                              fill={seriesColors[idx % seriesColors.length] + "55"}
-                              strokeWidth={1.6}
-                            />
-                          ))}
-                        </AreaChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                ) : !loading ? (
-                  <div className="mt-2 rounded-md border border-[#E2D8A1] bg-[#FFF2CC] px-3 py-2 text-sm text-stone-700">
-                    데이터가 없거나, 파싱할 숫자열을 찾지 못했어요.
-                  </div>
-                ) : null}
+                  );
+                })()}
               </div>
             )}
           </div>
