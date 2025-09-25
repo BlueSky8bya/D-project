@@ -82,12 +82,19 @@ export default function App() {
   const rightTopRef = useRef<HTMLDivElement | null>(null);
 
   const pickRoot = async () => {
+    console.log("폴더 선택 시도...");
     setError(null);
     try {
       const dir = await (window as any).showDirectoryPicker();
+      console.log("폴더가 선택되었습니다:", dir.name);
       setRoot(dir);
     } catch (e: any) {
-      if (e?.name !== "AbortError") setError("폴더 선택이 취소되었거나 지원되지 않습니다.");
+      if (e?.name !== "AbortError") {
+        console.error("폴더 선택 오류:", e);
+        setError("폴더 선택이 취소되었거나 지원되지 않습니다.");
+      } else {
+        console.log("폴더 선택이 취소되었습니다.");
+      }
     }
   };
 
@@ -95,6 +102,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       if (!root) return;
+      console.log(`[Effect] 루트 폴더 스캔 시작 (빠른 스캔: ${fastScan})`);
       setSelectedUid(null);
       setSelectedCsv(null);
       setRows(null);
@@ -175,6 +183,7 @@ export default function App() {
 
   // CSV 로드
   const loadCsv = async (f: CsvFileInfo) => {
+    console.group(`[CSV 로드 시작] ${f.name}`);
     setError(null);
     setSelectedCsv(f);
     setRows(null);
@@ -185,15 +194,18 @@ export default function App() {
     try {
       const file = await f.handle.getFile();
       const text = await file.text();
+      console.log(`파일 크기: ${text.length} bytes`);
 
       // 설문(response.csv)
       if (f.name.toLowerCase() === "response.csv") {
+        console.log("설문(response.csv) 파싱을 시작합니다.");
         const rowArray = await parseCsv(text, {
           header: true,
           dynamicTyping: true,
           skipEmptyLines: true,
           worker: true,
         });
+        console.log(`파싱된 행 개수: ${rowArray.length}`);
 
         if (!rowArray.length) {
           setSurveyBlocks([]);
@@ -201,6 +213,7 @@ export default function App() {
           const latest =
             rowArray.slice().sort((a, b) => (a?.week ?? 0) - (b?.week ?? 0)).at(-1) ?? rowArray[0];
           const blocks = parseSurveyFromRow(latest);
+          console.log("설문 블록 파싱 완료:", blocks);
           setSurveyBlocks(blocks);
         }
         setRows(null);
@@ -208,17 +221,20 @@ export default function App() {
       }
 
       // 센서
+      console.log("센서 데이터 파싱을 시작합니다.");
       const sensorRows = await parseCsv(text, {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
         worker: true,
       });
+      console.log(`파싱된 센서 행 개수: ${sensorRows.length}`, sensorRows.slice(0, 5));
       setRows(sensorRows);
     } catch (e: any) {
       setError(`CSV 읽기 오류: ${String(e?.message || e)}`);
     } finally {
       setLoading(false);
+      console.groupEnd();
     }
   };
 

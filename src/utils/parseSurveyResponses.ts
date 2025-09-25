@@ -19,6 +19,7 @@ const ITEM_KEY_RE =
   /^(?<name>[^[]+)\[(?<idx>\d+)\]\.(?<field>question|options\[(?<optIdx>\d+)\]|answers\[(?<ansIdx>\d+)\])$/;
 
 export function parseSurveyFromRow(row: Record<string, any>): SurveyBlock[] {
+  console.log('[parseSurveyFromRow] 설문 데이터 파싱 시작, 입력 행:', row);
   const bySurvey = new Map<string, { items: Map<number, SurveyItem> }>();
 
   const uid = row["uid"];
@@ -73,6 +74,7 @@ export function parseSurveyFromRow(row: Record<string, any>): SurveyBlock[] {
     }
     result.push({ name, uid, week, items: arr });
   }
-  // 섹션 이름 순서 고정하고 싶으면 여기서 sort 가능
+  
+  console.log('[parseSurveyFromRow] 파싱 완료, 결과 블록:', result);
   return result;
 }

@@ -26,11 +26,14 @@ const norm01 = (v: any) => {
 };
 
 export function normalizeEMA(rows: any[]): EMA[] {
-  return rows.map(r => ({
+  console.log('[normalizeEMA] EMA 데이터 정규화 시작, 입력 행:', rows.slice(0, 5));
+  const results = rows.map(r => ({
     ts: toEpoch(r.timestamp ?? r.time ?? r.ts),
     mood: norm01(r.mood),
     stress: norm01(r.stress),
     anxiety: norm01(r.anxiety),
     context: r.context ?? r.activity ?? r.note ?? undefined,
   })).filter(x => !isNaN(x.ts));
+  console.log('[normalizeEMA] 정규화 완료, 결과:', results.slice(0, 5));
+  return results;
 }

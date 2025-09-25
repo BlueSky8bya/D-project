@@ -29,6 +29,9 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
     [meta]
   );
 
+  // 디버깅 로그: CsvRouter 진입점
+  console.log(`[CsvRouter] 파일명: ${fileName}, 행 개수: ${rows.length}`, { meta, surveyBlocksLength: surveyBlocks.length });
+
   // ------------------------------------------
   // response.csv (설문) 직접 처리 (App에서 한 번 더 거르지만 안전망)
   if (meta?.kind === 'survey' && meta.id === 'survey') {
@@ -70,7 +73,7 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
       console.log('sample rows:', (norm as any).rows.slice(0, 3));
       console.groupEnd();
     } catch (e) {
-      // 콘솔 실패는 무시
+      console.warn("디버그 로그 출력 중 오류:", e);
     }
 
     return <SensorViewer fileName={fileName} normalized={norm!} />;

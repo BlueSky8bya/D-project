@@ -32,7 +32,10 @@ const hhmmToMs = (dateStr: string, hhmm: string) => {
 };
 
 export function normalizeSleepDiary(rows: any[]): SleepDiary[] {
-  return rows.map((r) => {
+  // ✅ 추가된 부분: 함수 시작 시 입력 데이터 확인
+  console.log('[normalizeSleepDiary] 수면일지 데이터 정규화 시작, 입력 행:', rows.slice(0, 5));
+
+  const results = rows.map((r) => {
     const date = String(r.date ?? r.day ?? '').slice(0, 10);
 
     const onsetRaw = r.sleep_onset ?? r.bedtime ?? r.sleepOnset ?? r.onset; // 변종
@@ -69,4 +72,8 @@ export function normalizeSleepDiary(rows: any[]): SleepDiary[] {
       wakeHour,
     };
   }).filter(x => x.date);
+
+  // ✅ 추가된 부분: 함수 완료 시 결과 데이터 확인
+  console.log('[normalizeSleepDiary] 정규화 완료, 결과:', results.slice(0, 5));
+  return results;
 }

@@ -10,6 +10,9 @@ const toMs = (v: any) => {
 };
 
 export function normalizeStepCount(rows: any[]): { points: StepPoint[]; daily: StepDaily[] } {
+  // ✅ 추가된 부분: 함수 시작 시 입력 데이터 확인
+  console.log('[normalizeStepCount] 걸음수 데이터 정규화 시작, 입력 행:', rows.slice(0, 5));
+  
   const points: StepPoint[] = rows.map(r => {
     const steps = Number(r.steps ?? r.count ?? 0) || 0;
     let ts = toMs(r.timestamp ?? r.time ?? r.ts);
@@ -33,5 +36,13 @@ export function normalizeStepCount(rows: any[]): { points: StepPoint[]; daily: S
     .sort((a,b)=>a[0]<b[0]? -1: 1)
     .map(([date, total]) => ({ date, total }));
 
-  return { points, daily };
+  const result = { points, daily };
+
+  // ✅ 추가된 부분: 함수 완료 시 결과 데이터 확인
+  console.log('[normalizeStepCount] 정규화 완료, 결과:', {
+    points: result.points.slice(0, 5),
+    daily: result.daily.slice(0, 5),
+  });
+
+  return result;
 }

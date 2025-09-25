@@ -1,4 +1,5 @@
 // src/utils/normalizeRows.ts
+
 import type { InferredMapping, KeyHints } from './inferKeys';
 import { inferKeys } from './inferKeys';
 
@@ -16,19 +17,28 @@ function percent(n: number, d: number) {
 
 // 문자열/날짜/숫자 → epoch(ms) 또는 null
 function toEpoch(v: any): number | null {
-  if (v == null) return null;
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (v instanceof Date) return v.getTime();
-  if (typeof v === 'string') {
-    const t = Date.parse(v);
-    return Number.isFinite(t) ? t : null;
+  try {
+    if (v == null) return null;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (v instanceof Date) return v.getTime();
+    if (typeof v === 'string') {
+      const t = Date.parse(v);
+      return Number.isFinite(t) ? t : null;
+    }
+    return null;
+  } catch (e) {
+    console.error("toEpoch 변환 실패:", v, e);
+    return null;
   }
-  return null;
 }
 
 export function normalizeRows(raw: any[], hints: KeyHints = {}): NormalizeResult | null {
+  console.log('normalizeRows 시작:', { rawCount: raw.length, hints });
   const m = inferKeys(raw, hints);
-  if (!m) return null;
+  if (!m) {
+    console.error("키 추론 실패(inferKeys).", { hints });
+    return null;
+  }
 
   const N = raw.length;
 
@@ -43,6 +53,7 @@ export function normalizeRows(raw: any[], hints: KeyHints = {}): NormalizeResult
       { column: 'ts',    coverage: percent(nOkTs, N) },
       { column: 'value', coverage: percent(nOkVal, N) },
     ];
+    console.log('Mono 데이터 정규화 완료:', { mapping: m, coverage });
     return { shape: 'mono', rows, mapping: m, coverage };
   }
 
@@ -66,5 +77,6 @@ export function normalizeRows(raw: any[], hints: KeyHints = {}): NormalizeResult
     { column: 'y',  coverage: percent(yOk, N) },
     { column: 'z',  coverage: percent(zOk, N) },
   ];
+  console.log('Triad 데이터 정규화 완료:', { mapping: m, coverage });
   return { shape: 'triad', rows, mapping: m, coverage };
 }

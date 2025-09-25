@@ -1,12 +1,13 @@
 // src/components/SurveyViewer.tsx
 
+import React from 'react'; // React.memo를 사용하기 위해 import 합니다.
 import type { SurveyBlock } from "../utils/parseSurveyResponses";
 
 type Props = {
   surveys: SurveyBlock[];
 };
 
-export default function SurveyViewer({ surveys }: Props) {
+function SurveyViewer({ surveys }: Props) {
   if (!surveys?.length) {
     return <div className="text-sm text-gray-500">표시할 설문 응답이 없습니다.</div>;
   }
@@ -55,3 +56,5 @@ export default function SurveyViewer({ surveys }: Props) {
     </div>
   );
 }
+
+export default React.memo(SurveyViewer);
