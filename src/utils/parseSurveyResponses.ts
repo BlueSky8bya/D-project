@@ -26,6 +26,9 @@ export function parseSurveyFromRow(row: Record<string, any>): SurveyBlock[] {
   const week = row["week"];
 
   for (const [key, value] of Object.entries(row)) {
+    // 값이 비어있으면(null, undefined, NaN) 건너뛰어 파싱 성능을 최적화합니다.
+    if (value == null || (typeof value === 'number' && isNaN(value))) continue;
+
     const m = key.match(ITEM_KEY_RE);
     if (!m || !m.groups) continue;
 
@@ -54,7 +57,6 @@ export function parseSurveyFromRow(row: Record<string, any>): SurveyBlock[] {
       item.options[optIdx] = value ?? "";
     } else if (m.groups.field.startsWith("answers[")) {
       const ansIdx = Number(m.groups.ansIdx);
-      // value가 true면 선택된 보기
       const chosen = value === true || value === "true" || value === 1 || value === "1";
       if (chosen) {
         item.selectedIndex = ansIdx;
@@ -72,9 +74,18 @@ export function parseSurveyFromRow(row: Record<string, any>): SurveyBlock[] {
       it.selectedText =
         it.selectedIndex != null ? (it.options?.[it.selectedIndex] ?? null) : null;
     }
-    result.push({ name, uid, week, items: arr });
+    
+    const finalBlock = { name, uid, week, items: arr };
+
+    // ✅ 추가된 부분: 응답한 항목이 하나라도 있는 설문 블록만 결과에 포함시킵니다.
+    const hasAnyAnswer = finalBlock.items.some(item => item.selectedIndex !== null);
+    if (hasAnyAnswer) {
+      result.push(finalBlock);
+    } else {
+      console.log(`[parseSurveyFromRow] '${name}' 설문은 응답이 없어 제외합니다.`);
+    }
   }
   
-  console.log('[parseSurveyFromRow] 파싱 완료, 결과 블록:', result);
+  console.log('[parseSurveyFromRow] 파싱 완료, 유효한 결과 블록:', result);
   return result;
 }

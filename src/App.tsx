@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import type { ParseResult, ParseConfig } from "papaparse";
 
-import SurveyViewer from "./components/SurveyViewer";
+import SurveyResultsViewer from "./components/SurveyResultsViewer"; 
 import { parseSurveyFromRow, type SurveyBlock } from "./utils/parseSurveyResponses";
 import { TARGET_FILES, prettyName, findMetaByFile } from './constants/csvRegistry';
 import CsvRouter from './components/CsvRouter';
@@ -97,6 +97,18 @@ export default function App() {
       }
     }
   };
+
+// FileReader를 Promise로 감싸서 사용하기 위한 헬퍼 함수
+const readFileAsText = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    // 'euc-kr'은 CP949를 포함하는, 한글 Windows에서 주로 사용하는 인코딩입니다.
+    // 대부분의 한글 깨짐은 이 옵션으로 해결됩니다.
+    reader.readAsText(file, 'euc-kr'); 
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
   /* 스캔 */
   useEffect(() => {
@@ -193,7 +205,8 @@ export default function App() {
 
     try {
       const file = await f.handle.getFile();
-      const text = await file.text();
+      // file.text() 대신 새로운 FileReader 헬퍼 함수를 사용합니다.
+      const text = await readFileAsText(file); 
       console.log(`파일 크기: ${text.length} bytes`);
 
       // 설문(response.csv)
@@ -210,13 +223,12 @@ export default function App() {
         if (!rowArray.length) {
           setSurveyBlocks([]);
         } else {
-          const latest =
-            rowArray.slice().sort((a, b) => (a?.week ?? 0) - (b?.week ?? 0)).at(-1) ?? rowArray[0];
-          const blocks = parseSurveyFromRow(latest);
-          console.log("설문 블록 파싱 완료:", blocks);
+          // response.csv는 여러 주차의 데이터를 포함할 수 있으므로, 모든 데이터를 파싱하도록 수정합니다.
+          const blocks = rowArray.flatMap(row => parseSurveyFromRow(row));
+          console.log("모든 설문 블록 파싱 완료:", blocks);
           setSurveyBlocks(blocks);
         }
-        setRows(null);
+        setRows(null); // surveyBlocks를 사용하므로 rows는 null로 설정
         return;
       }
 
@@ -231,6 +243,7 @@ export default function App() {
       console.log(`파싱된 센서 행 개수: ${sensorRows.length}`, sensorRows.slice(0, 5));
       setRows(sensorRows);
     } catch (e: any) {
+      console.error(`[CSV 로드 오류] ${f.name}:`, e);
       setError(`CSV 읽기 오류: ${String(e?.message || e)}`);
     } finally {
       setLoading(false);
@@ -401,14 +414,13 @@ export default function App() {
                 )}
 
                 {(() => {
-                  const meta = findMetaByFile(selectedCsv.name);
                   if (loading) return null;
 
                   // response.csv 전용: surveyBlocks가 필요(빈 경우 안내 메시지)
-                  if (meta?.kind === "survey" && meta.id === "survey") {
+                  if (findMetaByFile(selectedCsv.name)?.id === "survey") {
                     return (surveyBlocks && surveyBlocks.length > 0) ? (
                       <div className="rounded-lg border border-[#E2D08F] bg-white/70 p-3">
-                        <SurveyViewer surveys={surveyBlocks} />
+                        <SurveyResultsViewer surveyBlocks={surveyBlocks} />
                       </div>
                     ) : (
                       <div className="mt-2 rounded-md border border-[#E2D8A1] bg-[#FFF2CC] px-3 py-2 text-sm text-stone-700">
