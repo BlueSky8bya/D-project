@@ -18,7 +18,57 @@ type Participant = { uid: string; handle: DirHandle; quickCount: number; files?:
 const TARGET_FILES_SET = new Set<string>(TARGET_FILES);
 
 const CSV_INFO: Record<string, { title: string; desc: string; fields?: string[] }> = {
-  // ... (동일)
+  'watch_accelerometer': {
+    title: '가속도 센서 (watch_accelerometer.csv)',
+    desc: '기기의 3축(x, y, z) 방향 움직임 가속도를 기록한 데이터입니다. (단위: m/s²)',
+    fields: ['timestamp', 'x', 'y', 'z'],
+  },
+  'watch_gravity': {
+    title: '중력 가속도 센서 (watch_gravity.csv)',
+    desc: '기기에 작용하는 중력 가속도를 3축(x, y, z)으로 분해하여 기록한 데이터입니다. (단위: m/s²)',
+    fields: ['timestamp', 'x', 'y', 'z'],
+  },
+  'watch_gyroscope': {
+    title: '자이로스코프 센서 (watch_gyroscope.csv)',
+    desc: '기기의 3축(x, y, z) 회전 각속도를 기록한 데이터입니다. (단위: rad/s)',
+    fields: ['timestamp', 'x', 'y', 'z'],
+  },
+  'watch_heart_rate': {
+    title: '심박수 (watch_heart_rate.csv)',
+    desc: '광학 센서로 측정한 분당 심박수(BPM) 데이터입니다.',
+    fields: ['timestamp', 'value'],
+  },
+  'watch_ppg_green': {
+    title: 'PPG - 녹색광 (watch_ppg_green.csv)',
+    desc: '심박수 측정을 위해 녹색광을 사용하여 수집한 광용적맥파(Photoplethysmography) 원시 신호 데이터입니다.',
+    fields: ['timestamp', 'value'],
+  },
+  'watch_light': {
+    title: '조도 센서 (watch_light.csv)',
+    desc: '기기 주변의 빛의 밝기(조도)를 측정한 데이터입니다. (단위: lux)',
+    fields: ['timestamp', 'value'],
+  },
+  'watch_step_count': {
+    title: '걸음수 (watch_step_count.csv)',
+    desc: '특정 시간 동안 누적된 걸음수 데이터입니다. (단위: steps)',
+    fields: ['timestamp', 'steps'],
+  },
+  'sleep_diary': {
+    title: '수면일지 (sleep_diary.csv)',
+    desc: '사용자가 직접 입력한 주관적인 수면 기록 데이터입니다.',
+    fields: ['date', 'sleep_onset', 'wakeTime', 'quality'],
+  },
+  'ema': {
+    title: '순간기분평가 (ema.csv)',
+    desc: 'EMA(Ecological Momentary Assessment) 방식으로 특정 순간의 기분·스트레스·불안감에 대한 자가 보고 데이터입니다.',
+    fields: ['date', 'mood', 'stress', 'anxiety'],
+  },
+  'response': {
+    title: '설문 응답 (response.csv)',
+    desc: `표준화된 심리·건강 관련 설문 응답 데이터입니다.
+포함된 설문: PHQ-9(우울증), CES-D(우울척도), GAD-7(불안장애), ISI(불면증), Stress-20(스트레스), INQ(대인관계), WHOQOL-BREF(삶의 질), S-Scale-A(스마트폰 중독), HAM-D(해밀턴 우울증), HAM-A(해밀턴 불안), CNS-VS(신경인지기능)`,
+    fields: ['uid', 'week', '각 설문별 문항과 응답'],
+  },
 };
 
 /* -------- 유틸 -------- */
