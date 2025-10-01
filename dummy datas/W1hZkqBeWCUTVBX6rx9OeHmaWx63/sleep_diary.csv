@@ -1,0 +1,2 @@
+_id,uid,date,sleep_time,awake_time,midawake,midawake_duration,midawake_time,sleep_prepare_duration
+672176575fc86555907d0963,W1hZkqBeWCUTVBX6rx9OeHmaWx63,2024-10-29T23:56:40Z,2024-10-29T18:00:00Z,2024-10-29T23:30:00Z,false,0:00:00.000000,0,0:30:00.000000

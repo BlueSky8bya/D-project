@@ -280,7 +280,8 @@ const TrendChart: React.FC<{
   surveyName: string;
   yDomain?: [number, number];
   invertGradient?: boolean;
-}> = ({ mode, surveyName, yDomain, invertGradient = false }) => {
+  subScaleRanges?: Record<string, { min?: number; max?: number }>;
+}> = ({ mode, surveyName, yDomain, invertGradient = false , subScaleRanges = {} }) => {
   const uid = useId();
   const meta = SURVEY_META[surveyName];
   const titleDesc = meta?.desc ? ` · ${meta.desc}` : '';
@@ -344,6 +345,41 @@ const TrendChart: React.FC<{
             데이터가 1건이라 추이선을 표시하지 않았습니다.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // 데이터 1건(연속형) → 하위척도 카드형 요약
+  if (mode.kind === 'continuous' && mode.data.length === 1) {
+    const row = mode.data[0] as Record<string, any>;
+    return (
+      <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-lg font-semibold text-stone-800">
+            주차별 점수 변화 추이 · {surveyName}
+            <span className="text-stone-500 text-sm ml-1">{titleDesc}</span>
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
+          {(mode.series as string[]).map((name) => {
+            const v = row[name];
+            if (!Number.isFinite(v)) return null;
+            const range = subScaleRanges[name] || {};
+            return (
+              <ContinuousBar
+                key={name}
+                scale={{ name, score: v, min: range.min ?? 0, max: range.max ?? Math.max(10, v) }}
+                reverseColor={surveyName === 'WHOQOL-BREF'}
+              />
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-stone-500 mt-2">
+          데이터가 1건이라 추이선을 표시하지 않았습니다.
+        </p>
       </div>
     );
   }
@@ -422,92 +458,109 @@ const TrendChart: React.FC<{
             />
           )}
 
-          {mode.kind === 'categorical' ? (
-            <Line
-              type="monotone"
-              dataKey="score"
-              stroke={`url(#${lineGradId})`}
-              strokeWidth={3}
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              isAnimationActive={true}
-              animationDuration={700}
-              animationEasing="ease-in-out"
-              connectNulls
+          {mode.kind === 'categorical' ? (() => {
+            // 동일 색/동일 값 → 그라디언트 대신 단색 + 직선
+            const uniformColor = new Set(mode.data.map(d => d._color)).size <= 1;
+            const uniformScore = new Set(mode.data.map(d => d.score)).size <= 1;
+            const strokeValue = (uniformColor || uniformScore)
+              ? (mode.data[0]._color || '#10b981')
+              : `url(#${lineGradId})`;
+            const lineType = (mode.data.length <= 2 || uniformScore) ? 'linear' : 'monotone';
 
-              dot={(props: any) => {
-                const { cx, cy, payload, index } = props;
-                const fill = payload._color || '#10b981';
-                return (
-                  <motion.circle
-                    key={`dot-${payload.week}`}
-                    initial={false}
-                    animate={{ cx, cy, opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 280, damping: 24, delay: index * 0.03 }}
-                    cx={cx} cy={cy} r={5} fill={fill} stroke="#ffffff" strokeWidth={2}
-                  />
-                );
-              }}
-              activeDot={(props: any) => {
-                const { cx, cy, payload } = props;
-                const fill = payload._color || '#10b981';
-                return (
-                  <motion.circle
-                    key={`active-${payload.week}`}
-                    initial={false}
-                    animate={{ cx, cy, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                    cx={cx} cy={cy} r={7} fill={fill} stroke="#111827" strokeWidth={1.5}
-                  />
-                );
-              }}
-            />
-          ) : (
-            /* 연속형 라인들 */
-            (mode.series as string[])
-              .filter((s) => (mode as any).data.some((d: any) => Number.isFinite(d[s])))
-              .map((s, i) => (
-                <Line
-                  key={s}
-                  type="monotone"
-                  dataKey={s}
-                  name={s}
-                  stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-                  strokeWidth={3}
-                  isAnimationActive={true}
-                  animationDuration={700}
-                  animationEasing="ease-in-out"
-                  connectNulls
+            return (
+              <Line
+                type={lineType}
+                dataKey="score"
+                stroke={strokeValue}
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={true}
+                animationDuration={700}
+                animationEasing="ease-in-out"
+                connectNulls
+                dot={(props: any) => {
+                  const { cx, cy, payload, index } = props;
+                  const fill = payload._color || '#10b981';
+                  return (
+                    <motion.circle
+                      key={`dot-${payload.week}`}
+                      initial={false}
+                      animate={{ cx, cy, opacity: 1, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 280, damping: 24, delay: index * 0.03 }}
+                      cx={cx} cy={cy} r={5} fill={fill} stroke="#ffffff" strokeWidth={2}
+                    />
+                  );
+                }}
+                activeDot={(props: any) => {
+                  const { cx, cy, payload } = props;
+                  const fill = payload._color || '#10b981';
+                  return (
+                    <motion.circle
+                      key={`active-${payload.week}`}
+                      initial={false}
+                      animate={{ cx, cy, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                      cx={cx} cy={cy} r={7} fill={fill} stroke="#111827" strokeWidth={1.5}
+                    />
+                  );
+                }}
+              />
+            );
+          })()
+            : (
+              // 연속형: 시리즈 값이 전부 같거나 포인트 2개 이하면 직선
+              (mode.series as string[])
+                .filter((s) => (mode as any).data.some((d: any) => Number.isFinite(d[s])))
+                .map((s, i) => {
+                  const seriesVals = (mode as any).data
+                    .map((d: any) => (typeof d[s] === 'number' && Number.isFinite(d[s]) ? d[s] : null))
+                    .filter((v: number | null) => v !== null) as number[];
+                  const uniformSeries = seriesVals.length >= 2 && seriesVals.every(v => v === seriesVals[0]);
+                  const lineType = (seriesVals.length <= 2 || uniformSeries) ? 'linear' : 'monotone';
 
-                  dot={(props: any) => {
-                    const { cx, cy } = props;
-                    const fill = props.stroke; // 라인색과 동일
-                    return (
-                      <motion.circle
-                        key={`dot-${s}-${cx}-${cy}`}
-                        initial={false}
-                        animate={{ cx, cy, opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-                        cx={cx} cy={cy} r={3} fill={fill} stroke="#ffffff" strokeWidth={1.5}
-                      />
-                    );
-                  }}
-                  activeDot={(props: any) => {
-                    const { cx, cy } = props;
-                    const fill = props.stroke;
-                    return (
-                      <motion.circle
-                        key={`active-${s}-${cx}-${cy}`}
-                        initial={false}
-                        animate={{ cx, cy, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                        cx={cx} cy={cy} r={5} fill={fill} stroke="#111827" strokeWidth={2}
-                      />
-                    );
-                  }}
-                />
-              ))
-          )}
+                  return (
+                    <Line
+                      key={s}
+                      type={lineType}
+                      dataKey={s}
+                      name={s}
+                      stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+                      strokeWidth={3}
+                      isAnimationActive={true}
+                      animationDuration={700}
+                      animationEasing="ease-in-out"
+                      connectNulls
+                      dot={(props: any) => {
+                        const { cx, cy } = props;
+                        const fill = props.stroke;
+                        return (
+                          <motion.circle
+                            key={`dot-${s}-${cx}-${cy}`}
+                            initial={false}
+                            animate={{ cx, cy, opacity: 1, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                            cx={cx} cy={cy} r={3} fill={fill} stroke="#ffffff" strokeWidth={1.5}
+                          />
+                        );
+                      }}
+                      activeDot={(props: any) => {
+                        const { cx, cy } = props;
+                        const fill = props.stroke;
+                        return (
+                          <motion.circle
+                            key={`active-${s}-${cx}-${cy}`}
+                            initial={false}
+                            animate={{ cx, cy, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                            cx={cx} cy={cy} r={5} fill={fill} stroke="#111827" strokeWidth={2}
+                          />
+                        );
+                      }}
+                    />
+                  );
+                })
+            )}
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -717,6 +770,17 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
     );
   }, [isContinuousSelected, sampleResult]);
 
+  // 하위척도 범위 맵 (연속형 단일 주차 카드 표시용)
+  const continuousSeriesRanges = useMemo<Record<string, { min?: number; max?: number }>>(() => {
+    const map: Record<string, { min?: number; max?: number }> = {};
+    sampleResult?.subScales?.forEach((s) => {
+      if (s.min !== undefined || s.max !== undefined) {
+        map[s.name] = { min: s.min, max: s.max };
+      }
+    });
+    return map;
+  }, [sampleResult]);
+
   // 연속형 데이터 (모든 시리즈 null인 주차는 제외 → 빈 X축 제거)
   const continuousTrendData = useMemo<Array<Record<string, any>>>(() => {
     if (!hasMultipleWeeks || !selectedSurveyForTrend || !isContinuousSelected)
@@ -894,6 +958,7 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
               !!(selectedSurveyForTrend && SURVEY_META[selectedSurveyForTrend]?.invert)
             }
             yDomain={yDomainForSelected}
+            subScaleRanges={continuousSeriesRanges}
             mode={
               isContinuousSelected
                 ? { kind: 'continuous', data: continuousTrendData, series: continuousSeriesNames }
