@@ -13,9 +13,9 @@ import {
   ResponsiveContainer,
   ReferenceArea,
 } from 'recharts';
-import type { SurveyBlock } from '../utils/parseSurveyResponses';
-import { analyzeSurveyBlock, type AnalysisResult } from '../utils/surveyAnalysis';
-import { exportToCsv } from '../utils/exportSurvey';
+import type { SurveyBlock } from './parseSurveyResponses';
+import { analyzeSurveyBlock, type AnalysisResult } from './surveyAnalysis';
+import { exportToCsv } from '../../lib/utils/csvExporter';
 
 type Props = {
   surveyBlocks: SurveyBlock[];

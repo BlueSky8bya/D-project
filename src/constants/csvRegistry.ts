@@ -1,4 +1,4 @@
-// src/constants/csvRegistry.ts
+// src/constants/csvRegistry.ts - CSV 파일명과 뷰어 컴포넌트를 1:1로 매핑하는 설정 파일
 
 export type CsvKind =
   | 'motion_sensor' // 가속도/중력/자이로/걸음수

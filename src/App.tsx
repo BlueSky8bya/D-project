@@ -1,11 +1,11 @@
-// src/App.tsx
+// src/App.tsx - 메인 애플리케이션 컴포넌트
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import type { ParseResult, ParseConfig } from "papaparse";
 
-import SurveyResultsViewer from "./components/SurveyResultsViewer"; 
-import { parseSurveyFromRow, type SurveyBlock } from "./utils/parseSurveyResponses";
+import SurveyResultsViewer from "./features/Response/SurveyResultsViewer"; 
+import { parseSurveyFromRow, type SurveyBlock } from "./features/Response/parseSurveyResponses";
 import { TARGET_FILES, prettyName, findMetaByFile } from './constants/csvRegistry';
 import CsvRouter from './components/CsvRouter';
 

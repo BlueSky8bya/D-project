@@ -1,14 +1,14 @@
-// src/components/CsvRouter.tsx
+// src/components/CsvRouter.tsx - 데이터 종류에 따라 적절한 뷰어를 연결하는 라우터
 
 import { useMemo } from 'react';
-import type { KeyHints } from '../utils/inferKeys';
-import { normalizeRows } from '../utils/normalizeRows';
+import type { KeyHints } from '../lib/utils/inferKeys';
+import { normalizeRows } from '../lib/utils/normalizeRows';
 import { findMetaByFile } from '../constants/csvRegistry';
 
 import SensorViewer from './SensorViewer';
-import StepCountViewer from './StepCountViewer';
-import EMAViewer from './EMAViewer';
-import SleepDiaryViewer from './SleepDiaryViewer';
+import StepCountViewer from '../features/StepCount/StepCountViewer';
+import EMAViewer from '../features/EMA/EMAViewer';
+import SleepDiaryViewer from '../features/SleepDiary/SleepDiaryViewer';
 
 type Props = {
   fileName: string;

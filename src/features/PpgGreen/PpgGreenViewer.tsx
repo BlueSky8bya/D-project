@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
-import type { NormalizeResult } from '../utils/normalizeRows';
+import type { NormalizeResult } from '../../lib/utils/normalizeRows';
 
 type Props = {
   fileName: string;
@@ -20,7 +20,7 @@ function downsample<T>(arr: T[], max = 20000): T[] {
   return out;
 }
 
-export default function SensorViewer({ fileName: _fileName, normalized }: Props) {
+export default function PpgGreenViewer({ fileName: _fileName, normalized }: Props) {
   void _fileName;
 
   const data = useMemo(() => {

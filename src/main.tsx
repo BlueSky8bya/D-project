@@ -1,4 +1,4 @@
-// src/main.tsx
+// src/main.tsx - 애플리케이션 진입점
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

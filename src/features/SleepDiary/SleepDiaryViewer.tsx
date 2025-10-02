@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
-import { normalizeSleepDiary } from '../utils/parseSleepDiary';
-import type { SleepDiary } from '../utils/parseSleepDiary';
+import { normalizeSleepDiary } from './parseSleepDiary';
+import type { SleepDiary } from './parseSleepDiary';
 
 export default function SleepDiaryViewer({ rows }: { rows: any[] }) {
   const data = useMemo<SleepDiary[]>(() => normalizeSleepDiary(rows), [rows]);

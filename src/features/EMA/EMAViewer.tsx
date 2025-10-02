@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar } from 'recharts';
-import { normalizeEMA } from '../utils/parseEMA';
-import type { EMA } from '../utils/parseEMA';
+import { normalizeEMA } from './parseEMA';
+import type { EMA } from './parseEMA';
 
 export default function EMAViewer({ rows }: { rows: any[] }) {
   const data = useMemo<EMA[]>(() => normalizeEMA(rows), [rows]);

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
-import { normalizeStepCount } from '../utils/parseStepCount';
+import { normalizeStepCount } from './parseStepCount';
 
 export default function StepCountViewer({ rows }: { rows: any[] }) {
   const { points, daily } = useMemo(() => normalizeStepCount(rows), [rows]);
