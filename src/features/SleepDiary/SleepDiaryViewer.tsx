@@ -1,4 +1,4 @@
-// src/components/SleepDiaryViewer.tsx
+// src/feature/SleepDiary/SleepDiaryViewer.tsx
 
 import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';

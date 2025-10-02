@@ -1,4 +1,4 @@
-// src/utils/parseSurveyResponses.ts
+// src/features/Response/parseSurveyResponses.ts
 
 export type SurveyItem = {
   idx: number;

@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/Light/LightViewer.tsx
 
 import { useMemo } from 'react';
 import {

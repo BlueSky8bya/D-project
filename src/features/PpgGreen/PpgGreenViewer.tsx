@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/PpgGreen/PpgGreenViewer.tsx
 
 import { useMemo } from 'react';
 import {

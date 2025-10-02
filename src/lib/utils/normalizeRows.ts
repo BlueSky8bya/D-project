@@ -1,7 +1,7 @@
-// src/utils/normalizeRows.ts
+// src/lib/utils/normalizeRows.ts
 
-import type { InferredMapping, KeyHints } from '../lib/utils/inferKeys';
-import { inferKeys } from '../lib/utils/inferKeys';
+import type { InferredMapping, KeyHints } from './inferKeys';
+import { inferKeys } from './inferKeys';
 
 export type NormalizedMono  = { ts: number | null; value: number | null };
 export type NormalizedTriad = { ts: number | null; x: number | null; y: number | null; z: number | null };

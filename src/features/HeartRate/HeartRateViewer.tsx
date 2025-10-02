@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/HeartRate/HeartRateViewer.tsx
 
 import { useMemo } from 'react';
 import {

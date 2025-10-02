@@ -1,4 +1,4 @@
-// src/utils/inferKeys.ts
+// src/lib/utils/inferKeys.ts
 
 export type Shape = 'mono' | 'triad';
 

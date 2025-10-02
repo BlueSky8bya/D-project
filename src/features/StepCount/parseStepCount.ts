@@ -1,4 +1,4 @@
-// src/utils/parseStepCount.ts
+// src/features/StepCount/parseStepCount.ts
 
 export type StepPoint = { ts: number; steps: number };
 export type StepDaily = { date: string; total: number };

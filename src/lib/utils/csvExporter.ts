@@ -1,4 +1,4 @@
-// src/utils/exportSurvey.ts
+// src/lib/utils/csvExporter.ts
 
 /**
  * Internet Explorer는 표준 `navigator` 객체에 `msSaveBlob`이라는 비표준 속성을 사용합니다.

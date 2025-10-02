@@ -1,4 +1,4 @@
-// src/utils/parseEMA.ts
+// src/features/EMA/parseEMA.ts
 
 export type EMA = {
   ts: number;         // epoch ms

@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/Gyroscope/GyroScopeViewer.tsx
 
 import { useMemo } from 'react';
 import {

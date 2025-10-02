@@ -1,4 +1,4 @@
-// src/components/StepCountViewer.tsx
+// src/features/StepCount/StepCountViewer.tsx
 
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';

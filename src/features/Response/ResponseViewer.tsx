@@ -1,4 +1,4 @@
-// src/components/SurveyResultsViewer.tsx
+// src/features/Response/ResponseViewer.tsx
 
 import React, { useEffect, useMemo, useState, useId } from 'react';
 import { Info, TrendingUp, Calendar, BarChart3, Download, FileDown } from 'lucide-react';

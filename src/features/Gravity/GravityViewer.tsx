@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/Gravity/GravityViewer.tsx
 
 import { useMemo } from 'react';
 import {

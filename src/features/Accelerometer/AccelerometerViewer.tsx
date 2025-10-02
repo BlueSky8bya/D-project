@@ -1,4 +1,4 @@
-// src/components/SensorViewer.tsx
+// src/features/Accelerometer/AccelerometerViewer.tsx
 
 import { useMemo } from 'react';
 import {

@@ -1,4 +1,4 @@
-// src/components/EMAViewer.tsx
+// src/features/EMA/EMAViewer.tsx
 
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar } from 'recharts';

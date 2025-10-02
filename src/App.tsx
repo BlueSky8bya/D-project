@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import type { ParseResult, ParseConfig } from "papaparse";
 
-import SurveyResultsViewer from "./features/Response/SurveyResultsViewer"; 
+import SurveyResultsViewer from "./features/Response/ResponseViewer"; 
 import { parseSurveyFromRow, type SurveyBlock } from "./features/Response/parseSurveyResponses";
 import { TARGET_FILES, prettyName, findMetaByFile } from './constants/csvRegistry';
 import CsvRouter from './components/CsvRouter';
