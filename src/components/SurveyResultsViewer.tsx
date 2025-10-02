@@ -1,7 +1,7 @@
 // src/components/SurveyResultsViewer.tsx
 
 import React, { useEffect, useMemo, useState, useId } from 'react';
-import { Info, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import { Info, TrendingUp, Calendar, BarChart3, Download, FileDown } from 'lucide-react';
 import { motion } from 'framer-motion'
 import {
   LineChart,
@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import type { SurveyBlock } from '../utils/parseSurveyResponses';
 import { analyzeSurveyBlock, type AnalysisResult } from '../utils/surveyAnalysis';
+import { exportToCsv } from '../utils/exportSurvey';
 
 type Props = {
   surveyBlocks: SurveyBlock[];
@@ -680,8 +681,6 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
     [blocks],
   );
 
-  
-
   // 초기 선택
   useEffect(() => {
     if (selectedWeek === null && weeks.length > 0)
@@ -691,11 +690,6 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
     if (selectedSurveyForTrend === null && surveyNames.length > 0)
       setSelectedSurveyForTrend(surveyNames[0]);
   }, [selectedSurveyForTrend, surveyNames]);
-
-  
-  
-  
-
 
   // 샘플 블록/결과
   const sampleBlock = useMemo(() => {
@@ -867,6 +861,72 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
     );
   }
 
+  /**
+   * 설문 결과를 정책에 따라 CSV로 추출하는 핸들러 함수
+   * @param policy - 'analysis' (분석 결과) 또는 'raw' (원본 데이터)
+   */
+  const handleExport = (policy: 'analysis' | 'raw') => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+    const subjectId = "participant_data"; // 필요시 동적으로 설정
+    const filename = `${subjectId}_survey_${policy}_${timestamp}.csv`;
+
+    const rows: (string | number)[][] = [];
+
+    if (policy === 'analysis') {
+      const headers = ['Week', 'Survey Name', 'Total Score', 'Interpretation', 'Category', 'Sub-scale Name', 'Sub-scale Score'];
+      rows.push(headers);
+
+      weeks.forEach(week => {
+        const blocksForWeek = groupedByWeek[week] || [];
+        blocksForWeek.forEach(block => {
+          const result = analyzeSurveyBlock(block);
+          const baseRow: (string | number)[] = [
+            `Week ${week}`,
+            result.name,
+            result.totalScore ?? 'N/A',
+            result.interpretation ?? '',
+          ];
+
+          if (result.categories?.length) {
+            const currentCategory = result.categories.find(c => c.isCurrent);
+            rows.push([...baseRow, currentCategory?.name ?? '', '', '']);
+          } else if (result.subScales?.length) {
+            result.subScales.forEach(subScale => {
+              rows.push([...baseRow, '', subScale.name, subScale.score]);
+            });
+          } else {
+            rows.push([...baseRow, '', '', '']);
+          }
+        });
+      });
+    } else if (policy === 'raw') {
+      const headers = ['Week', 'Survey Name', 'Question Index', 'Question Text', 'Selected Option Index', 'Selected Option Text'];
+      rows.push(headers);
+
+      weeks.forEach(week => {
+        const blocksForWeek = groupedByWeek[week] || [];
+        blocksForWeek.forEach(block => {
+          block.items.forEach(item => {
+            const selectedOptionText = (item.selectedIndex !== null && item.options[item.selectedIndex])
+              ? item.options[item.selectedIndex]
+              : 'N/A';
+            const row: (string | number)[] = [
+              `Week ${week}`,
+              block.name,
+              item.idx + 1,
+              item.question,
+              item.selectedIndex ?? 'N/A',
+              selectedOptionText,
+            ];
+            rows.push(row);
+          });
+        });
+      });
+    }
+
+    exportToCsv(filename, rows);
+  };
+
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       {/* 헤더 */}
@@ -885,28 +945,20 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
           {hasMultipleWeeks && (
             <div className="flex gap-2 bg-stone-100 p-1 rounded-lg">
               <button
-                onClick={() => {
-                  setViewMode('cards');
-                  if (weeks.length > 0) setSelectedWeek(weeks[0]); 
-                }}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
-                  viewMode === 'cards'
+                onClick={() => setViewMode('cards')}
+                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${viewMode === 'cards'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-stone-600 hover:text-stone-900'
-                }`}
+                  }`}
               >
                 카드 보기
               </button>
               <button
-                onClick={() => {
-                  setViewMode('trend');
-                  setChartKey((k) => k + 1);
-                }}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
-                  viewMode === 'trend'
+                onClick={() => setViewMode('trend')}
+                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${viewMode === 'trend'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-stone-600 hover:text-stone-900'
-                }`}
+                  }`}
               >
                 추이 보기
               </button>
@@ -1005,6 +1057,36 @@ export default function SurveyResultsViewer({ surveyBlocks }: Props) {
           </div>
         </>
       )}
+
+      {/* === 페이지 하단 추출 섹션 === */}
+      <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+              <FileDown className="w-6 h-6 text-sky-600" />
+              데이터 추출 (CSV 파일 형식)
+            </h3>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => handleExport('analysis')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              분석 결과 추출
+            </button>
+            <button
+              onClick={() => handleExport('raw')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all bg-sky-600 text-white hover:bg-sky-700 shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              원본 데이터 추출
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* ======================================= */}
+
     </div>
   );
 }
