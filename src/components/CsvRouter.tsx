@@ -9,7 +9,6 @@ import SensorViewer from './SensorViewer';
 import StepCountViewer from './StepCountViewer';
 import EMAViewer from './EMAViewer';
 import SleepDiaryViewer from './SleepDiaryViewer';
-import SurveyViewer from './SurveyViewer';
 
 type Props = {
   fileName: string;
@@ -32,11 +31,6 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
   // 디버깅 로그: CsvRouter 진입점
   console.log(`[CsvRouter] 파일명: ${fileName}, 행 개수: ${rows.length}`, { meta, surveyBlocksLength: surveyBlocks.length });
 
-  // ------------------------------------------
-  // response.csv (설문) 직접 처리 (App에서 한 번 더 거르지만 안전망)
-  if (meta?.kind === 'survey' && meta.id === 'survey') {
-    return surveyBlocks.length ? <SurveyViewer surveys={surveyBlocks} /> : null;
-  }
 
   // ------------------------------------------
   // EMA / 수면일지 / 걸음수 → 전용 Viewer
