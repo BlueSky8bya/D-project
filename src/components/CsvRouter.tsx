@@ -5,10 +5,18 @@ import type { KeyHints } from '../lib/utils/inferKeys';
 import { normalizeRows } from '../lib/utils/normalizeRows';
 import { findMetaByFile } from '../constants/csvRegistry';
 
-import SensorViewer from './SensorViewer';
 import StepCountViewer from '../features/StepCount/StepCountViewer';
 import EMAViewer from '../features/EMA/EMAViewer';
 import SleepDiaryViewer from '../features/SleepDiary/SleepDiaryViewer';
+
+import AccelerometerViewer from '../features/Accelerometer/AccelerometerViewer';
+import GravityViewer from '../features/Gravity/GravityViewer';
+import GyroscopeViewer from '../features/Gyroscope/GyroscopeViewer';
+import HeartRateViewer from '../features/HeartRate/HeartRateViewer';
+import PpgGreenViewer from '../features/PpgGreen/PpgGreenViewer';
+import LightViewer from '../features/Light/LightViewer';
+
+import SurveyResultsViewer from '../features/Response/ResponseViewer'; // response.csv용
 
 type Props = {
   fileName: string;
@@ -20,6 +28,7 @@ type Props = {
 /** 공용 라우터: 파일명 → 적절한 Viewer로 라우팅 */
 export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) {
   const meta = findMetaByFile(fileName);
+
   const hints: KeyHints = useMemo(
     () => ({
       timeKeyHint: meta?.timeKeyHint,
@@ -29,8 +38,38 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
   );
 
   // 디버깅 로그: CsvRouter 진입점
-  console.log(`[CsvRouter] 파일명: ${fileName}, 행 개수: ${rows.length}`, { meta, surveyBlocksLength: surveyBlocks.length });
+  console.log(
+    `[CsvRouter] 파일명: ${fileName}, 행 개수: ${rows.length}`,
+    { meta, surveyBlocksLength: surveyBlocks.length }
+  );
 
+  // 센서 여부 판별 (훅은 조건부로 호출하면 안 되므로, isSensor를 deps에 포함해 조건 처리)
+  const isSensor =
+    !!meta &&
+    (meta.kind === 'motion_sensor' ||
+      meta.kind === 'bio_sensor' ||
+      meta.kind === 'other_sensor');
+
+  // 센서류일 때만 정규화 계산, 아니면 null 반환
+  const norm = useMemo(() => {
+    if (!isSensor) return null;
+    const n = normalizeRows(rows, hints);
+    try {
+      if (n) {
+        const groupTitle = `[normalize] ${fileName} → ${meta?.id} (${meta?.kind})`;
+        console.groupCollapsed(groupTitle);
+        console.log('shape:', n.shape);
+        console.log('used mapping:', (n as any).mapping, ' (hints: ', hints, ')');
+        console.table(n.coverage);
+        console.log('sample rows:', (n as any).rows.slice(0, 3));
+        console.groupEnd();
+      }
+    } catch (e) {
+      console.warn('디버그 로그 출력 중 오류:', e);
+    }
+    return n;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, hints, isSensor, fileName, meta?.id, meta?.kind]);
 
   // ------------------------------------------
   // EMA / 수면일지 / 걸음수 → 전용 Viewer
@@ -43,12 +82,13 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
   if (meta?.id === 'step_count') {
     return <StepCountViewer rows={rows} />;
   }
+  if (meta?.id === 'survey') {
+    return <SurveyResultsViewer surveyBlocks={surveyBlocks} />;
+  }
 
   // ------------------------------------------
-  // 나머지 센서류 → SensorViewer (단일 컴포넌트)
-  if (meta && (meta.kind === 'motion_sensor' || meta.kind === 'bio_sensor' || meta.kind === 'other_sensor')) {
-    // normalize → 디버그 로그
-    const norm = useMemo(() => normalizeRows(rows, meta), [rows, meta]);
+  // 센서류 → 센서별 전용 Viewer로 분기
+  if (isSensor) {
     if (!norm) {
       return (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -57,20 +97,26 @@ export default function CsvRouter({ fileName, rows, surveyBlocks = [] }: Props) 
       );
     }
 
-    // 디버깅 출력 (개발자도구 콘솔에서 확인)
-    try {
-      const groupTitle = `[normalize] ${fileName} → ${meta.id} (${meta.kind})`;
-      console.groupCollapsed(groupTitle);
-      console.log('shape:', norm.shape);
-      console.log('used mapping:', (norm as any).mapping, ' (hints: ', hints, ')');
-      console.table(norm.coverage);
-      console.log('sample rows:', (norm as any).rows.slice(0, 3));
-      console.groupEnd();
-    } catch (e) {
-      console.warn("디버그 로그 출력 중 오류:", e);
+    switch (meta!.id) {
+      case 'accel':
+        return <AccelerometerViewer fileName={fileName} normalized={norm} />;
+      case 'gravity':
+        return <GravityViewer fileName={fileName} normalized={norm} />;
+      case 'gyro':
+        return <GyroscopeViewer fileName={fileName} normalized={norm} />;
+      case 'hr':
+        return <HeartRateViewer fileName={fileName} normalized={norm} />;
+      case 'ppg':
+        return <PpgGreenViewer fileName={fileName} normalized={norm} />;
+      case 'light':
+        return <LightViewer fileName={fileName} normalized={norm} />;
+      default:
+        return (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            아직 전용 뷰어가 없습니다: {meta!.id}
+          </div>
+        );
     }
-
-    return <SensorViewer fileName={fileName} normalized={norm!} />;
   }
 
   // ------------------------------------------
